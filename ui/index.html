@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JARVIS COMPLETE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@200;300;400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --c:#00eeff;--c2:#0055ff;--g:#00ff9d;--r:#ff2244;--gold:#ffcc00;
+  --pu:#aa44ff;--bg:#000810;--p:rgba(0,12,28,.94);--b:rgba(0,238,255,.15);
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--c);
+  font-family:'Share Tech Mono',monospace;overflow:hidden;}
+
+/* ── CANVAS ── */
+#cvs{position:fixed;inset:0;z-index:0;}
+#cvs2{position:fixed;inset:0;z-index:1;pointer-events:none;}
+
+/* ── EFFECTS ── */
+.scan{position:fixed;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,238,255,.5),transparent);
+  animation:sd 7s linear infinite;z-index:2;pointer-events:none;}
+@keyframes sd{0%{top:-2px;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.vig{position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,5,15,.8) 100%);z-index:2;pointer-events:none;}
+.corner{position:fixed;width:40px;height:40px;z-index:10;pointer-events:none;}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--c);opacity:.6;}
+.corner::before{width:100%;height:1px;box-shadow:0 0 6px var(--c);}
+.corner::after{width:1px;height:100%;box-shadow:0 0 6px var(--c);}
+.tl{top:6px;left:6px}.tr{top:6px;right:6px;transform:scaleX(-1)}
+.bl{bottom:6px;left:6px;transform:scaleY(-1)}.br{bottom:6px;right:6px;transform:scale(-1)}
+
+/* ── MAIN LAYOUT ── */
+#app{position:fixed;inset:0;z-index:3;display:grid;
+  grid-template-columns:260px 1fr 260px;
+  grid-template-rows:62px 1fr 48px;
+  gap:6px;padding:6px;}
+
+/* ── PANEL ── */
+.P{background:var(--p);border:1px solid var(--b);border-radius:3px;
+  backdrop-filter:blur(14px);padding:10px;position:relative;overflow:hidden;}
+.P::before{content:'';position:absolute;top:0;left:0;width:20px;height:1px;
+  background:var(--c);box-shadow:0 0 6px var(--c);}
+.P::after{content:'';position:absolute;top:0;left:0;width:1px;height:20px;
+  background:var(--c);box-shadow:0 0 6px var(--c);}
+.PT{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:3px;
+  color:rgba(0,238,255,.3);text-transform:uppercase;margin-bottom:8px;
+  padding-bottom:5px;border-bottom:1px solid rgba(0,238,255,.07);}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;margin-bottom:8px;}
+.tab{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;
+  padding:4px 8px;border:1px solid rgba(0,238,255,.15);border-radius:2px;
+  cursor:pointer;color:rgba(0,238,255,.4);transition:.15s;text-transform:uppercase;}
+.tab:hover{background:rgba(0,238,255,.08);color:var(--c);}
+.tab.active{background:rgba(0,238,255,.12);border-color:rgba(0,238,255,.4);color:var(--c);}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── HEADER ── */
+#hdr{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.hi{display:flex;flex-direction:column;gap:1px;}
+.hi-r{align-items:flex-end;}
+.hl{font-size:7.5px;letter-spacing:2px;color:rgba(0,238,255,.28);text-transform:uppercase;}
+.hv{font-size:11px;letter-spacing:1px;}
+.logo{display:flex;align-items:center;gap:12px;flex:1;justify-content:center;}
+.logo-t{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;
+  letter-spacing:12px;text-shadow:0 0 30px var(--c),0 0 60px rgba(0,238,255,.4);
+  animation:lb 4s ease-in-out infinite;}
+@keyframes lb{0%,100%{text-shadow:0 0 20px var(--c),0 0 50px rgba(0,238,255,.3)}
+  50%{text-shadow:0 0 50px var(--c),0 0 100px rgba(0,238,255,.6)}}
+.logo-s{font-size:7px;letter-spacing:3px;color:rgba(0,238,255,.25);text-align:center;}
+#clock{font-family:'Orbitron',monospace;font-size:14px;color:var(--c);text-shadow:0 0 8px var(--c);}
+.arc{width:48px;height:48px;position:relative;flex-shrink:0;}
+.ar{position:absolute;border-radius:50%;border:1px solid var(--c);animation:spin linear infinite;}
+.ar:nth-child(1){inset:0;animation-duration:5s;opacity:.4;}
+.ar:nth-child(2){inset:8px;animation-duration:3.5s;animation-direction:reverse;border-style:dashed;opacity:.6;}
+.ar:nth-child(3){inset:16px;animation-duration:7s;border-color:var(--c2);}
+.ac{position:absolute;inset:20px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,238,255,.95),rgba(0,100,255,.5),transparent);
+  box-shadow:0 0 16px rgba(0,238,255,.8);animation:cp 2s ease-in-out infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes cp{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+/* ── LEFT ── */
+#left{grid-row:2;display:flex;flex-direction:column;gap:6px;overflow:hidden;}
+.met{margin-bottom:8px;}
+.ml{font-size:7.5px;letter-spacing:2px;color:rgba(0,238,255,.28);text-transform:uppercase;}
+.mv{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:var(--c);text-shadow:0 0 6px rgba(0,238,255,.4);}
+.mb{height:2px;background:rgba(0,238,255,.07);border-radius:1px;margin-top:3px;}
+.mf{height:100%;border-radius:1px;transition:width .8s ease;}
+.fc{background:linear-gradient(90deg,var(--c2),var(--c));box-shadow:0 0 4px var(--c);}
+.fr{background:linear-gradient(90deg,#00aa55,var(--g));box-shadow:0 0 4px var(--g);}
+.fd{background:linear-gradient(90deg,#ff8800,#ffdd00);}
+.fb{background:linear-gradient(90deg,var(--pu),#ff44aa);}
+.srow{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 0;border-bottom:1px solid rgba(0,238,255,.05);font-size:8px;}
+.sn{color:rgba(0,238,255,.38);letter-spacing:.5px;}
+.dot{width:5px;height:5px;border-radius:50%;animation:blink 2s infinite;}
+.dg{background:var(--g);box-shadow:0 0 4px var(--g);}
+.dc{background:var(--c);box-shadow:0 0 4px var(--c);animation-delay:.5s;}
+.dgold{background:var(--gold);box-shadow:0 0 4px var(--gold);animation-delay:1s;}
+.dr{background:var(--r);box-shadow:0 0 4px var(--r);}
+.doff{background:rgba(255,255,255,.15);box-shadow:none;animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* AI CASCADE STATUS */
+.ai-row{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 0;border-bottom:1px solid rgba(0,238,255,.04);font-size:8px;}
+.ai-name{color:rgba(0,238,255,.35);letter-spacing:.5px;}
+.ai-badge{font-size:9px;}
+
+/* LOG */
+.lline{font-size:7.5px;line-height:1.9;letter-spacing:.3px;}
+.lok{color:rgba(0,255,140,.5)}.lwarn{color:rgba(255,200,0,.5)}
+.linfo{color:rgba(0,238,255,.3)}.lerr{color:rgba(255,50,50,.5)}
+
+/* ── CENTER ── */
+#center{grid-row:2;display:flex;flex-direction:column;gap:6px;}
+
+/* WAVE */
+#wavepnl{height:64px;padding:6px 10px;}
+#wave{display:flex;align-items:center;justify-content:center;gap:2px;height:100%;}
+.wb{width:2px;min-height:2px;background:linear-gradient(to top,var(--c2),var(--c));
+  border-radius:1px;box-shadow:0 0 2px var(--c);transition:height .07s ease;}
+
+/* STATUS BAR */
+#sb{display:flex;align-items:center;gap:8px;padding:6px 10px;
+  background:var(--p);border:1px solid var(--b);border-radius:3px;font-size:9px;letter-spacing:1.5px;}
+.sp2{width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 6px var(--g);animation:blink 1.5s infinite;}
+#stxt{color:rgba(0,238,255,.6);flex:1;}
+#aiused{font-size:8px;color:rgba(170,68,255,.7);letter-spacing:1px;}
+
+/* FOCUS BADGE */
+#focusbadge{display:none;padding:4px 10px;background:rgba(170,68,255,.12);
+  border:1px solid rgba(170,68,255,.35);border-radius:2px;font-size:7.5px;
+  color:var(--pu);letter-spacing:2px;text-align:center;animation:fpulse 2s infinite;}
+@keyframes fpulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* CHAT */
+#cpnl{flex:1;display:flex;flex-direction:column;min-height:0;}
+#msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+  margin-bottom:8px;max-height:300px;
+  scrollbar-width:thin;scrollbar-color:rgba(0,238,255,.12) transparent;}
+.msg{display:flex;gap:7px;animation:mi .3s ease-out;}
+@keyframes mi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.mr{flex-direction:row-reverse;}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:7px;font-family:'Orbitron',monospace;
+  font-weight:700;flex-shrink:0;margin-top:2px;}
+.avj{background:radial-gradient(rgba(0,238,255,.15),rgba(0,100,255,.08));
+  border:1px solid rgba(0,238,255,.4);color:var(--c);}
+.avu{background:radial-gradient(rgba(255,204,0,.15),rgba(255,100,0,.08));
+  border:1px solid rgba(255,204,0,.4);color:var(--gold);}
+.bub{max-width:86%;padding:7px 10px;font-size:11px;line-height:1.65;border-radius:2px;}
+.bj{background:rgba(0,238,255,.04);border:1px solid rgba(0,238,255,.12);
+  border-left:2px solid var(--c);color:rgba(185,240,255,.88);}
+.bu{background:rgba(255,204,0,.04);border:1px solid rgba(255,204,0,.12);
+  border-right:2px solid var(--gold);color:rgba(255,225,140,.88);text-align:right;}
+.ty{display:flex;gap:4px;align-items:center;padding:6px 10px;}
+.td{width:5px;height:5px;border-radius:50%;background:var(--c);animation:tb 1.2s ease-in-out infinite;}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes tb{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
+
+/* INPUT */
+.ir{display:flex;gap:6px;align-items:center;background:rgba(0,12,28,.97);
+  border:1px solid var(--b);border-radius:3px;padding:5px 9px;}
+.ir::before{content:'> ';color:rgba(0,238,255,.3);font-size:11px;}
+#inp{flex:1;background:transparent;border:none;outline:none;color:var(--c);
+  font-family:'Share Tech Mono',monospace;font-size:11px;caret-color:var(--c);}
+#inp::placeholder{color:rgba(0,238,255,.15);}
+.btn{background:transparent;border:1px solid rgba(0,238,255,.18);color:var(--c);
+  font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1.5px;
+  padding:5px 8px;cursor:pointer;border-radius:2px;text-transform:uppercase;
+  transition:.15s;white-space:nowrap;}
+.btn:hover{background:rgba(0,238,255,.08);border-color:var(--c);}
+.bgo{background:var(--c);color:var(--bg);border-color:var(--c);font-weight:700;}
+.bgo:hover{background:rgba(0,238,255,.8);box-shadow:0 0 15px rgba(0,238,255,.4);}
+.bmic{width:28px;height:28px;padding:0;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.bmic.on{border-color:var(--r);color:var(--r);background:rgba(255,34,68,.1);animation:mr2 1s ease-in-out infinite;}
+@keyframes mr2{0%,100%{box-shadow:0 0 0 0 rgba(255,34,68,.4)}50%{box-shadow:0 0 0 6px rgba(255,34,68,0)}}
+
+/* ── RIGHT ── */
+#right{grid-row:2;display:flex;flex-direction:column;gap:6px;overflow:hidden;}
+
+/* IMPROVEMENT PANEL */
+.imp-card{background:rgba(170,68,255,.06);border:1px solid rgba(170,68,255,.2);
+  border-radius:2px;padding:8px;margin-bottom:6px;}
+.imp-title{font-size:8px;letter-spacing:1px;color:var(--pu);margin-bottom:4px;}
+.imp-desc{font-size:9px;color:rgba(185,200,255,.7);margin-bottom:6px;line-height:1.5;}
+.imp-code{font-size:7.5px;color:rgba(0,238,255,.5);background:rgba(0,0,0,.3);
+  padding:4px 6px;border-radius:2px;max-height:80px;overflow-y:auto;
+  scrollbar-width:thin;white-space:pre;font-family:'Share Tech Mono',monospace;}
+.imp-actions{display:flex;gap:5px;margin-top:6px;}
+.btn-install{background:rgba(0,255,140,.1);border:1px solid rgba(0,255,140,.3);
+  color:var(--g);font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;
+  padding:5px 10px;cursor:pointer;border-radius:2px;flex:1;transition:.15s;}
+.btn-install:hover{background:rgba(0,255,140,.2);box-shadow:0 0 10px rgba(0,255,140,.2);}
+.btn-cancel{background:rgba(255,34,68,.08);border:1px solid rgba(255,34,68,.2);
+  color:rgba(255,100,100,.7);font-family:'Orbitron',monospace;font-size:7px;
+  padding:5px 10px;cursor:pointer;border-radius:2px;transition:.15s;}
+.btn-cancel:hover{background:rgba(255,34,68,.15);}
+.backup-item{display:flex;justify-content:space-between;padding:4px 6px;
+  background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.08);
+  border-radius:2px;margin-bottom:3px;font-size:8px;cursor:pointer;transition:.15s;}
+.backup-item:hover{background:rgba(0,238,255,.08);border-color:rgba(0,238,255,.25);}
+.backup-ts{color:rgba(0,238,255,.5);}
+.backup-reason{color:rgba(0,238,255,.3);}
+
+/* GAMING PANEL */
+.deal-item{padding:5px 7px;background:rgba(255,204,0,.04);
+  border:1px solid rgba(255,204,0,.1);border-radius:2px;margin-bottom:4px;font-size:8.5px;}
+.deal-title{color:rgba(255,220,120,.8);margin-bottom:2px;}
+.deal-price{color:var(--gold);font-size:9px;}
+.deal-save{color:var(--g);font-size:8px;}
+.game-rec{padding:6px 8px;background:rgba(0,238,255,.03);
+  border:1px solid rgba(0,238,255,.1);border-radius:2px;margin-bottom:4px;}
+.game-title{font-size:9px;color:var(--c);margin-bottom:2px;}
+.game-meta{font-size:8px;color:rgba(0,238,255,.4);}
+
+/* FINANCE PANEL */
+.crypto-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(0,238,255,.05);font-size:9px;}
+.crypto-name{color:rgba(0,238,255,.6);font-weight:700;width:40px;}
+.crypto-price{color:rgba(185,240,255,.8);}
+.crypto-up{color:var(--g);font-size:8px;}
+.crypto-down{color:var(--r);font-size:8px;}
+.finance-chart{height:60px;background:rgba(0,0,0,.2);border-radius:2px;
+  margin:6px 0;position:relative;overflow:hidden;}
+#chart-canvas{width:100%;height:100%;}
+
+/* EMAIL PANEL */
+.email-draft{background:rgba(0,238,255,.04);border:1px solid rgba(0,238,255,.15);
+  border-radius:2px;padding:8px;margin-bottom:6px;}
+.email-field{display:flex;gap:6px;margin-bottom:4px;font-size:9px;align-items:center;}
+.email-label{color:rgba(0,238,255,.35);width:50px;flex-shrink:0;}
+.email-val{color:rgba(185,240,255,.8);flex:1;}
+.email-body{font-size:9px;color:rgba(185,240,255,.7);
+  max-height:80px;overflow-y:auto;line-height:1.6;margin-top:6px;
+  padding:6px;background:rgba(0,0,0,.2);border-radius:2px;}
+.email-actions{display:flex;gap:5px;margin-top:6px;}
+
+/* HAND GESTURE */
+#hand-canvas{width:100%;height:100px;background:rgba(0,0,0,.3);
+  border-radius:2px;margin-bottom:6px;}
+.gesture-badge{display:inline-block;padding:3px 8px;border-radius:2px;
+  font-size:8px;letter-spacing:1px;margin-bottom:6px;}
+.gb-listen{background:rgba(0,238,255,.12);border:1px solid rgba(0,238,255,.3);color:var(--c);}
+.gb-ok{background:rgba(0,255,140,.1);border:1px solid rgba(0,255,140,.25);color:var(--g);}
+.gb-confirm{background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.25);color:var(--gold);}
+
+/* ── ORB OVERLAY ── */
+#orb-ov{position:fixed;inset:0;z-index:20;pointer-events:none;}
+#orb{position:absolute;width:180px;height:180px;border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);display:none;}
+#orb.listen{display:block;animation:op 1.5s ease-in-out infinite;
+  background:radial-gradient(circle,rgba(0,238,255,.1),transparent 70%);}
+#orb.speak{display:block;animation:op2 1s ease-in-out infinite;
+  background:radial-gradient(circle,rgba(0,255,140,.1),transparent 70%);}
+@keyframes op{0%,100%{box-shadow:0 0 0 0 rgba(0,238,255,.3)}50%{box-shadow:0 0 0 40px rgba(0,238,255,0)}}
+@keyframes op2{0%,100%{box-shadow:0 0 0 0 rgba(0,255,140,.3)}50%{box-shadow:0 0 0 50px rgba(0,255,140,0)}}
+#orblbl{position:absolute;top:56%;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;
+  color:rgba(0,238,255,.7);white-space:nowrap;}
+
+/* TOAST */
+#toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+  background:rgba(0,12,28,.97);border:1px solid rgba(170,68,255,.4);
+  padding:10px 18px;border-radius:3px;font-size:9px;letter-spacing:1px;
+  color:var(--pu);display:none;z-index:30;text-align:center;
+  box-shadow:0 0 20px rgba(170,68,255,.15);}
+
+/* FOOTER */
+#ftr{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;border-top:1px solid rgba(0,238,255,.06);}
+.ft{font-size:7.5px;letter-spacing:2px;color:rgba(0,238,255,.18);}
+#fmid{color:rgba(0,238,255,.15);font-size:8px;transition:.5s;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,238,255,.15);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<canvas id="cvs"></canvas>
+<canvas id="cvs2"></canvas>
+<div class="scan"></div>
+<div class="vig"></div>
+<div class="corner tl"></div><div class="corner tr"></div>
+<div class="corner bl"></div><div class="corner br"></div>
+
+<div id="orb-ov"><div id="orb"><div id="orblbl"></div></div></div>
+<div id="toast"></div>
+
+<div id="app">
+
+<!-- HEADER -->
+<div id="hdr" class="P">
+  <div class="hi">
+    <div class="hl">SYSTÈME</div><div class="hv" id="sys-s" style="color:var(--g)">OPÉRATIONNEL</div>
+    <div class="hl" style="margin-top:2px">RÉSEAU</div><div class="hv" id="net-s" style="color:var(--g)">EN LIGNE ✓</div>
+  </div>
+  <div class="logo">
+    <div class="arc"><div class="ar"></div><div class="ar"></div><div class="ar"></div><div class="ac"></div></div>
+    <div><div class="logo-t">JARVIS</div><div class="logo-s">COMPLETE v4.0 — ASUS TUF GAMING</div></div>
+  </div>
+  <div class="hi" style="align-items:flex-end">
+    <div class="hl">HEURE</div><div id="clock">--:--:--</div>
+    <div class="hl" style="margin-top:2px">UPTIME</div><div id="up" style="font-size:11px;color:var(--c)">--:--:--</div>
+  </div>
+</div>
+
+<!-- LEFT -->
+<div id="left">
+
+  <!-- PC METRICS -->
+  <div class="P">
+    <div class="PT">PC — ASUS TUF RTX 4070</div>
+    <div class="met"><div class="ml">CPU</div><div class="mv" id="vcpu">--%</div>
+      <div class="mb"><div class="mf fc" id="bcpu" style="width:0%"></div></div></div>
+    <div class="met"><div class="ml">RAM</div><div class="mv" id="vram">--Mo</div>
+      <div class="mb"><div class="mf fr" id="bram" style="width:0%"></div></div></div>
+    <div class="met"><div class="ml">DISQUE C:</div><div class="mv" id="vdisk">--%</div>
+      <div class="mb"><div class="mf fd" id="bdisk" style="width:0%"></div></div></div>
+    <div class="met" style="margin-bottom:0"><div class="ml">BATTERIE</div><div class="mv" id="vbat">--</div>
+      <div class="mb"><div class="mf fb" id="bbat" style="width:0%"></div></div></div>
+  </div>
+
+  <!-- AI CASCADE -->
+  <div class="P">
+    <div class="PT">Cascade IA</div>
+    <div class="ai-row"><span class="ai-name">LOCAL LLaMA3 RTX</span><span class="ai-badge" id="ai-local">⚫</span></div>
+    <div class="ai-row"><span class="ai-name">GROQ (gratuit)</span><span class="ai-badge" id="ai-groq">⚫</span></div>
+    <div class="ai-row"><span class="ai-name">MISTRAL (gratuit)</span><span class="ai-badge" id="ai-mistral">⚫</span></div>
+    <div class="ai-row"><span class="ai-name">GEMINI FREE</span><span class="ai-badge" id="ai-gemini">⚫</span></div>
+    <div class="ai-row"><span class="ai-name">GEMINI PRO ♾️</span><span class="ai-badge" id="ai-pro">⚫</span></div>
+    <div class="ai-row" style="border:none"><span class="ai-name">ELEVENLABS VOICE</span><span class="ai-badge" id="ai-el">⚫</span></div>
+    <div style="margin-top:6px;padding:4px 6px;background:rgba(0,238,255,.04);border-radius:2px;font-size:8px;text-align:center;">
+      IA ACTIVE: <span id="aiused-display" style="color:var(--pu)">--</span>
+    </div>
+  </div>
+
+  <!-- MODULES -->
+  <div class="P" style="flex:1">
+    <div class="PT">Modules</div>
+    <div class="srow"><span class="sn">VOIX ELEVENLABS</span><div class="dot" id="d-voice" style="background:rgba(255,255,255,.1);box-shadow:none;animation:none;"></div></div>
+    <div class="srow"><span class="sn">RECONNAISSANCE VOCALE</span><div class="dot dg"></div></div>
+    <div class="srow"><span class="sn">VISION ÉCRAN</span><div class="dot dg"></div></div>
+    <div class="srow"><span class="sn">GESTES MAINS</span><div class="dot" id="d-gest" style="background:rgba(255,255,255,.1);box-shadow:none;animation:none;"></div></div>
+    <div class="srow"><span class="sn">EMAIL GMAIL</span><div class="dot" id="d-email" style="background:rgba(255,255,255,.1);box-shadow:none;animation:none;"></div></div>
+    <div class="srow"><span class="sn">INSTAGRAM</span><div class="dot" id="d-insta" style="background:rgba(255,255,255,.1);box-shadow:none;animation:none;"></div></div>
+    <div class="srow"><span class="sn">AUTO-AMÉLIORATION</span><div class="dot dgold"></div></div>
+    <div class="srow"><span class="sn">BACKUPS AUTO</span><div class="dot dg"></div></div>
+    <div class="srow" style="border:none"><span class="sn">MODE HORS-LIGNE</span><div class="dot dc"></div></div>
+    <div style="margin-top:6px;font-size:8px;color:rgba(0,238,255,.25);letter-spacing:1px;">
+      BACKUPS: <span id="backup-count" style="color:var(--g)">0</span> disponibles
+    </div>
+  </div>
+
+</div>
+
+<!-- CENTER -->
+<div id="center">
+
+  <!-- WAVEFORM -->
+  <div class="P" id="wavepnl"><div id="wave"></div></div>
+
+  <!-- STATUS -->
+  <div id="sb">
+    <div class="sp2"></div>
+    <div id="stxt">EN VEILLE — DITES "JARVIS" OU CTRL+SHIFT+J</div>
+    <div id="aiused" style="display:none"></div>
+  </div>
+
+  <!-- FOCUS BADGE -->
+  <div id="focusbadge">⬡ MODE CONCENTRATION ACTIF ⬡</div>
+
+  <!-- CHAT -->
+  <div class="P" id="cpnl">
+    <div class="PT" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>Interface de Communication</span>
+      <span id="app-ctx" style="color:rgba(0,238,255,.2);font-size:7px;"></span>
+    </div>
+    <div id="msgs">
+      <div class="msg">
+        <div class="av avj">AI</div>
+        <div><div class="bub bj">
+          <strong>JARVIS Complete v4.0</strong> opérationnel sur votre ASUS TUF Gaming.<br><br>
+          Tous les systèmes actifs : voix ElevenLabs · auto-modification+backup · cascade IA · email · Instagram · gestes · gaming · finance · carte holographique.<br><br>
+          Dites <strong>"Jarvis"</strong> ou <strong>Ctrl+Shift+J</strong>.
+        </div></div>
+      </div>
+    </div>
+    <div class="ir">
+      <input id="inp" placeholder="Commande, question, amélioration..." autocomplete="off"/>
+      <button class="btn bmic" id="micbtn">🎤</button>
+      <button class="btn" onclick="window.open('/map.html','_blank')" title="Carte">🗺️</button>
+      <button class="btn bgo" id="sendbtn">ENVOYER</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- RIGHT -->
+<div id="right">
+
+  <!-- TABS: AMÉLIORATION / GAMING / FINANCE / EMAIL / GESTES -->
+  <div class="P" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('improve')">🔧 AUTO-MOD</div>
+      <div class="tab" onclick="switchTab('gaming')">🎮 GAMING</div>
+      <div class="tab" onclick="switchTab('finance')">💰 FINANCE</div>
+      <div class="tab" onclick="switchTab('email')">✉️ EMAIL</div>
+      <div class="tab" onclick="switchTab('gesture')">🤚 GESTES</div>
+    </div>
+
+    <!-- AUTO-MOD TAB -->
+    <div id="tab-improve" class="tab-content active" style="overflow-y:auto;flex:1;">
+      <div style="margin-bottom:6px;">
+        <div style="font-size:8px;color:rgba(0,238,255,.3);letter-spacing:1px;margin-bottom:4px;">DEMANDER UNE AMÉLIORATION</div>
+        <input id="improve-input" placeholder="Ex: apprends à lire mes notifications..."
+          style="width:100%;background:rgba(0,238,255,.04);border:1px solid rgba(0,238,255,.2);
+          border-radius:2px;padding:6px 8px;color:var(--c);font-family:'Share Tech Mono',monospace;
+          font-size:10px;outline:none;caret-color:var(--c);" autocomplete="off"/>
+        <button onclick="requestImprovement()" style="width:100%;margin-top:4px;
+          background:rgba(170,68,255,.12);border:1px solid rgba(170,68,255,.3);
+          color:var(--pu);font-family:'Orbitron',monospace;font-size:7.5px;letter-spacing:2px;
+          padding:6px;cursor:pointer;border-radius:2px;transition:.15s;"
+          onmouseover="this.style.background='rgba(170,68,255,.22)'"
+          onmouseout="this.style.background='rgba(170,68,255,.12)'">
+          ⚡ GÉNÉRER LE CODE
+        </button>
+      </div>
+
+      <!-- CODE PREVIEW -->
+      <div id="improve-preview" style="display:none;">
+        <div class="imp-card">
+          <div class="imp-title" id="imp-title">AMÉLIORATION GÉNÉRÉE</div>
+          <div class="imp-desc" id="imp-desc"></div>
+          <div style="font-size:7px;color:rgba(0,238,255,.25);margin-bottom:3px;">APERÇU DU CODE:</div>
+          <div class="imp-code" id="imp-code"></div>
+          <div style="font-size:7px;color:rgba(0,255,140,.4);margin-top:4px;" id="imp-safe">✓ CODE VALIDÉ — SÉCURISÉ</div>
+          <div class="imp-actions">
+            <button class="btn-install" onclick="confirmInstall()">✓ INSTALLER + BACKUP</button>
+            <button class="btn-cancel" onclick="cancelInstall()">✕ ANNULER</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BACKUP LIST -->
+      <div>
+        <div style="font-size:8px;color:rgba(0,238,255,.28);letter-spacing:2px;margin-bottom:5px;">BACKUPS DISPONIBLES</div>
+        <div id="backups-list">
+          <div style="font-size:8px;color:rgba(0,238,255,.2);">Aucun backup encore.</div>
+        </div>
+        <button onclick="send('liste les backups disponibles')" style="width:100%;margin-top:4px;
+          background:transparent;border:1px solid rgba(0,238,255,.12);color:rgba(0,238,255,.4);
+          font-family:'Orbitron',monospace;font-size:7px;letter-spacing:1px;
+          padding:5px;cursor:pointer;border-radius:2px;">
+          ↺ ACTUALISER
+        </button>
+      </div>
+    </div>
+
+    <!-- GAMING TAB -->
+    <div id="tab-gaming" class="tab-content" style="overflow-y:auto;flex:1;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+        <button onclick="send('offres jeux steam aujourd hui')" class="btn" style="padding:6px;font-size:7px;">💸 DEALS STEAM</button>
+        <button onclick="send('jeux gratuits epic cette semaine')" class="btn" style="padding:6px;font-size:7px;">🎁 EPIC GRATUIT</button>
+        <button onclick="send('recommande moi un jeu')" class="btn" style="padding:6px;font-size:7px;">⭐ RECO IA</button>
+        <button onclick="send('actus gaming cette semaine')" class="btn" style="padding:6px;font-size:7px;">📰 ACTUS</button>
+      </div>
+      <div id="game-deals-list">
+        <div style="font-size:8px;color:rgba(255,204,0,.3);text-align:center;padding:10px;">
+          Cliquez "DEALS STEAM" pour charger
+        </div>
+      </div>
+      <div id="game-recs-list"></div>
+    </div>
+
+    <!-- FINANCE TAB -->
+    <div id="tab-finance" class="tab-content" style="overflow-y:auto;flex:1;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+        <button onclick="send('prix des cryptos')" class="btn" style="padding:6px;font-size:7px;">₿ CRYPTO</button>
+        <button onclick="send('prix des actions')" class="btn" style="padding:6px;font-size:7px;">📈 ACTIONS</button>
+        <button onclick="send('analyse le marche financier')" class="btn" style="padding:6px;font-size:7px;grid-column:1/-1;">🔍 ANALYSE IA MARCHÉ</button>
+      </div>
+      <div id="crypto-list"></div>
+      <div id="stock-list" style="margin-top:6px;"></div>
+      <div id="finance-analysis" style="margin-top:6px;font-size:8.5px;line-height:1.6;color:rgba(185,240,255,.7);display:none;
+        padding:6px;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.1);border-radius:2px;"></div>
+    </div>
+
+    <!-- EMAIL TAB -->
+    <div id="tab-email" class="tab-content" style="overflow-y:auto;flex:1;">
+      <div style="margin-bottom:8px;">
+        <div style="font-size:8px;color:rgba(0,238,255,.28);letter-spacing:1px;margin-bottom:4px;">COMPOSER UN EMAIL</div>
+        <input id="email-to" placeholder="À: destinataire@email.com"
+          style="width:100%;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.15);
+          border-radius:2px;padding:5px 8px;color:var(--c);font-family:'Share Tech Mono',monospace;
+          font-size:9.5px;outline:none;margin-bottom:3px;"/>
+        <input id="email-subj" placeholder="Objet: ..."
+          style="width:100%;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.15);
+          border-radius:2px;padding:5px 8px;color:var(--c);font-family:'Share Tech Mono',monospace;
+          font-size:9.5px;outline:none;margin-bottom:3px;"/>
+        <textarea id="email-msg" placeholder="Message à transmettre..."
+          style="width:100%;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.15);
+          border-radius:2px;padding:5px 8px;color:var(--c);font-family:'Share Tech Mono',monospace;
+          font-size:9.5px;outline:none;resize:none;height:50px;"></textarea>
+        <button onclick="composeEmail()" style="width:100%;margin-top:4px;
+          background:rgba(0,238,255,.08);border:1px solid rgba(0,238,255,.25);
+          color:var(--c);font-family:'Orbitron',monospace;font-size:7.5px;letter-spacing:2px;
+          padding:6px;cursor:pointer;border-radius:2px;">
+          ✉️ RÉDIGER AVEC IA
+        </button>
+      </div>
+
+      <!-- EMAIL DRAFT -->
+      <div id="email-draft-panel" style="display:none;">
+        <div class="email-draft">
+          <div style="font-size:7.5px;letter-spacing:2px;color:rgba(0,238,255,.3);margin-bottom:5px;">BROUILLON GÉNÉRÉ — VÉRIFIEZ AVANT ENVOI</div>
+          <div class="email-field"><span class="email-label">À:</span><span class="email-val" id="draft-to"></span></div>
+          <div class="email-field"><span class="email-label">Objet:</span><span class="email-val" id="draft-subj"></span></div>
+          <div class="email-body" id="draft-body"></div>
+          <div class="email-actions">
+            <button onclick="send('envoie')" class="btn-install">📤 ENVOYER</button>
+            <button onclick="document.getElementById('email-draft-panel').style.display='none'" class="btn-cancel">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GESTURE TAB -->
+    <div id="tab-gesture" class="tab-content" style="overflow-y:auto;flex:1;">
+      <canvas id="hand-canvas"></canvas>
+      <div id="gesture-status" class="gesture-badge gb-listen" style="display:none;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
+        <button onclick="send('active les gestes')" class="btn" style="padding:6px;font-size:7px;">▶ ACTIVER</button>
+        <button onclick="send('désactive les gestes')" class="btn" style="padding:6px;font-size:7px;">■ DÉSACTIVER</button>
+      </div>
+      <div style="font-size:8px;color:rgba(0,238,255,.3);line-height:2;">
+        ✊ POING FERMÉ → Activer JARVIS<br>
+        🖐️ MAIN OUVERTE → Stop<br>
+        👍 POUCE HAUT → Confirmer<br>
+        👎 POUCE BAS → Annuler<br>
+        ✌️ DEUX DOIGTS → Scroll
+      </div>
+    </div>
+
+  </div>
+
+  <!-- QUICK COMMANDS -->
+  <div class="P">
+    <div class="PT">Commandes Rapides</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('stats système')">📊 STATS</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('screenshot')">📸 CAPTURE</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('mode gaming')">🎮 GAMING</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('mode code')">💻 CODE</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('nettoie le système')">🧹 NETTOYER</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('mode sombre')">🌑 SOMBRE</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="window.open('/map.html','_blank')">🗺️ CARTE</div>
+      <div class="btn" style="padding:5px;font-size:7px;text-align:center;cursor:pointer;" onclick="send('analyse mon écran')">👁 VISION</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div id="ftr" class="P">
+  <div class="ft">JARVIS COMPLETE v4.0 · ASUS TUF GAMING · RTX 4070</div>
+  <div id="fmid">⬡ TOUS SYSTÈMES OPÉRATIONNELS ⬡</div>
+  <div class="ft">PROCS: <span id="procs-c">--</span> · BACKUPS: <span id="bk-c" style="color:var(--g)">0</span></div>
+</div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CANVAS BG
+// ══════════════════════════════════════════════════════════════════
+const cv=document.getElementById('cvs'),ct=cv.getContext('2d');
+const cv2=document.getElementById('cvs2'),ct2=cv2.getContext('2d');
+function resize(){cv.width=cv2.width=window.innerWidth;cv.height=cv2.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
+const pts=Array.from({length:90},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.2+.3}));
+function drawBg(){
+  ct.clearRect(0,0,cv.width,cv.height);
+  ct.strokeStyle='rgba(0,238,255,0.022)';ct.lineWidth=.5;
+  for(let x=0;x<cv.width;x+=55){ct.beginPath();ct.moveTo(x,0);ct.lineTo(x,cv.height);ct.stroke();}
+  for(let y=0;y<cv.height;y+=55){ct.beginPath();ct.moveTo(0,y);ct.lineTo(cv.width,y);ct.stroke();}
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;
+    if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;
+    ct.beginPath();ct.arc(p.x,p.y,p.r,0,Math.PI*2);ct.fillStyle='rgba(0,238,255,.2)';ct.fill();
+  });
+  ct.strokeStyle='rgba(0,238,255,.032)';ct.lineWidth=.4;
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<85){ct.beginPath();ct.moveTo(pts[i].x,pts[i].y);ct.lineTo(pts[j].x,pts[j].y);ct.stroke();}
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+// ORB CANVAS
+const orbPts=Array.from({length:100},()=>({theta:Math.random()*Math.PI*2,phi:Math.random()*Math.PI,r:75+Math.random()*15,speed:Math.random()*.003+.001,offset:Math.random()*Math.PI*2}));
+let orbActive=false,orbMode='idle',orbT=0;
+function drawOrb(){
+  ct2.clearRect(0,0,cv2.width,cv2.height);
+  if(!orbActive){requestAnimationFrame(drawOrb);return;}
+  orbT+=.015;
+  const cx=cv2.width/2,cy=cv2.height/2;
+  const col=orbMode==='listen'?[0,238,255]:orbMode==='speak'?[0,255,140]:[170,68,255];
+  const [r,g,b]=col;
+  const grd=ct2.createRadialGradient(cx,cy,0,cx,cy,110);
+  grd.addColorStop(0,`rgba(${r},${g},${b},.12)`);grd.addColorStop(1,'transparent');
+  ct2.fillStyle=grd;ct2.beginPath();ct2.arc(cx,cy,110,0,Math.PI*2);ct2.fill();
+  orbPts.forEach(p=>{
+    p.theta+=p.speed*(orbMode==='speak'?2.5:1);
+    const pr=p.r+(orbMode==='speak'?Math.sin(orbT*3+p.offset)*12:0)+Math.sin(orbT+p.offset)*6;
+    const px=cx+pr*Math.sin(p.phi)*Math.cos(p.theta);
+    const py=cy+pr*Math.sin(p.phi)*Math.sin(p.theta)*.6;
+    const alpha=.25+Math.sin(orbT*2+p.offset)*.18;
+    ct2.beginPath();ct2.arc(px,py,1.1,0,Math.PI*2);
+    ct2.fillStyle=`rgba(${r},${g},${b},${alpha})`;ct2.fill();
+  });
+  const rg=ct2.createRadialGradient(cx,cy,88+Math.sin(orbT*2)*8-1,cx,cy,88+Math.sin(orbT*2)*8+1);
+  rg.addColorStop(0,`rgba(${r},${g},${b},0)`);rg.addColorStop(.5,`rgba(${r},${g},${b},.35)`);rg.addColorStop(1,`rgba(${r},${g},${b},0)`);
+  ct2.strokeStyle=rg;ct2.lineWidth=1.5;ct2.beginPath();ct2.arc(cx,cy,88+Math.sin(orbT*2)*8,0,Math.PI*2);ct2.stroke();
+  requestAnimationFrame(drawOrb);
+}
+drawOrb();
+function setOrb(mode){
+  orbMode=mode;orbActive=mode!=='idle';
+  const o=document.getElementById('orb'),l=document.getElementById('orblbl');
+  o.className=mode!=='idle'?mode:'';
+  l.textContent=mode==='listen'?'EN ÉCOUTE':mode==='speak'?'PARLE':'';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// WAVEFORM
+// ══════════════════════════════════════════════════════════════════
+const wd=document.getElementById('wave');
+const NBARS=56;const bars=[];
+for(let i=0;i<NBARS;i++){const b=document.createElement('div');b.className='wb';b.style.height='2px';wd.appendChild(b);bars.push(b);}
+let waveAct=false;
+function animWave(){
+  const t=Date.now()/1000;
+  bars.forEach((b,i)=>{
+    let h=waveAct?4+Math.random()*48+Math.abs(Math.sin(t*3+i*.2))*12:2+Math.sin(t*1.5+i*.35)*7+Math.sin(t*.6+i*.18)*3;
+    b.style.height=Math.max(2,h)+'px';
+  });
+  requestAnimationFrame(animWave);
+}
+animWave();
+
+// ══════════════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════════════
+const st=Date.now();
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toTimeString().slice(0,8);
+  const up=Math.floor((Date.now()-st)/1000);
+  document.getElementById('up').textContent=String(Math.floor(up/3600)).padStart(2,'0')+':'+String(Math.floor((up%3600)/60)).padStart(2,'0')+':'+String(up%60).padStart(2,'0');
+}
+setInterval(tick,1000);tick();
+
+// ══════════════════════════════════════════════════════════════════
+// SSE
+// ══════════════════════════════════════════════════════════════════
+const es=new EventSource('http://localhost:7474/events');
+es.onmessage=e=>{try{const{event,data}=JSON.parse(e.data);handle(event,data);}catch{}};
+es.onerror=()=>{document.getElementById('sys-s').textContent='DÉCONNECTÉ';document.getElementById('sys-s').style.color='var(--r)';};
+
+function handle(ev,d){
+  switch(ev){
+    case 'metrics':
+      if(d.cpu!==undefined){document.getElementById('vcpu').textContent=d.cpu+'%';document.getElementById('bcpu').style.width=d.cpu+'%';}
+      if(d.ram!==undefined){document.getElementById('vram').textContent=d.ram_used+'Mo';document.getElementById('bram').style.width=d.ram+'%';}
+      if(d.disk!==undefined){document.getElementById('vdisk').textContent=d.disk+'%';document.getElementById('bdisk').style.width=d.disk+'%';}
+      if(d.battery!==undefined&&d.battery>=0){document.getElementById('vbat').textContent=d.battery.toFixed(0)+'%'+(d.charging?' ⚡':'');document.getElementById('bbat').style.width=d.battery+'%';}
+      if(d.procs){document.getElementById('procs-c').textContent=d.procs;document.getElementById('procs-c').textContent=d.procs;}
+      if(d.online!==undefined){document.getElementById('net-s').textContent=d.online?'EN LIGNE ✓':'HORS LIGNE';document.getElementById('net-s').style.color=d.online?'var(--g)':'var(--r)';}
+      if(d.focus!==undefined){
+        const fb=document.getElementById('focusbadge');
+        fb.style.display=d.focus?'block':'none';
+        if(d.focus)fb.textContent=`⬡ MODE ${(d.focus_activity||'').toUpperCase()} ACTIF ⬡`;
+      }
+      if(d.ai_cascade){
+        const map={local:'ai-local',groq:'ai-groq',mistral:'ai-mistral',gemini:'ai-gemini',pro:'ai-pro',el:'ai-el'};
+        Object.entries(map).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&d.ai_cascade[k])el.textContent=d.ai_cascade[k];});
+      }
+      if(d.backups!==undefined){
+        document.getElementById('backup-count').textContent=d.backups;
+        document.getElementById('bk-c').textContent=d.backups;
+      }
+      break;
+    case 'status': document.getElementById('stxt').textContent=d; break;
+    case 'ai_used':
+      document.getElementById('aiused-display').textContent=d;
+      document.getElementById('aiused').textContent=d;
+      document.getElementById('aiused').style.display='block';
+      setTimeout(()=>document.getElementById('aiused').style.display='none',5000);
+      break;
+    case 'orb': setOrb(d); waveAct=d==='speak'; break;
+    case 'speaking': waveAct=d; break;
+    case 'user_text':
+      // Message déjà affiché quand on l'a tapé : on ne le remet pas une 2e fois
+      if(window._lastSent===d){window._lastSent=null;break;}
+      addMsg(d,'user'); break;
+    case 'response': removeTyping(); addMsg(d,'jarvis'); break;
+    case 'log': addLog(d.msg,d.color); break;
+    case 'active_app': document.getElementById('app-ctx').textContent=d.process?d.process.slice(0,12).toUpperCase():''; break;
+    case 'improvement_preview': showImprovementPreview(d); break;
+    case 'improvement_step': showToast(d); break;
+    case 'improvement_installed': showToast('✓ INSTALLÉ — Redémarrage dans 3s...'); break;
+    case 'improvement_failed': showToast('❌ ÉCHEC: '+d.error); break;
+    case 'email_draft': showEmailDraft(d); break;
+    case 'email_sent': showToast('✓ EMAIL ENVOYÉ À '+d); break;
+    case 'crypto_prices': showCrypto(d); break;
+    case 'stock_prices': showStocks(d); break;
+    case 'game_deals': showGameDeals(d); break;
+    case 'game_recs': showGameRecs(d); break;
+    case 'focus_mode': handle('metrics',{focus:d.active,focus_activity:d.activity||''}); break;
+    case 'backups_list': showBackups(d); break;
+    case 'gesture_event': showGestureStatus(d); break;
+    case 'reminder_fire': showToast('⏰ RAPPEL: '+d); break;
+    case 'post_preview': showToast('📸 POST PRÊT: '+d.content?.slice(0,40)); switchTab('email'); break;
+    case 'finance_analysis': showFinanceAnalysis(d); break;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════════════════════════
+function esc(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+}
+function addMsg(text,who){
+  const m=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg'+(who==='user'?' mr':'');
+  d.innerHTML=who==='jarvis'
+    ?`<div class="av avj">AI</div><div><div class="bub bj">${esc(text)}</div></div>`
+    :`<div class="av avu">ID</div><div><div class="bub bu">${esc(text)}</div></div>`;
+  m.appendChild(d);m.scrollTop=m.scrollHeight;
+  if(who==='user')showTyping();
+}
+function showTyping(){
+  if(document.getElementById('typ'))return;
+  const m=document.getElementById('msgs');
+  const t=document.createElement('div');t.className='msg';t.id='typ';
+  t.innerHTML='<div class="av avj">AI</div><div class="bub bj"><div class="ty"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';
+  m.appendChild(t);m.scrollTop=m.scrollHeight;
+}
+function removeTyping(){const t=document.getElementById('typ');if(t)t.remove();}
+
+// ══════════════════════════════════════════════════════════════════
+// SEND
+// ══════════════════════════════════════════════════════════════════
+function send(text){
+  text=text||document.getElementById('inp').value.trim();
+  if(!text)return;
+  document.getElementById('inp').value='';
+  addMsg(text,'user');
+  window._lastSent=text;
+  fetch(`http://localhost:7474/send?q=${encodeURIComponent(text)}`).catch(()=>{});
+}
+document.getElementById('sendbtn').addEventListener('click',()=>send());
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send();}});
+document.getElementById('micbtn').addEventListener('click',()=>{
+  fetch('http://localhost:7474/activate').catch(()=>{});
+  document.getElementById('micbtn').classList.add('on');
+  setOrb('listen');
+  setTimeout(()=>{document.getElementById('micbtn').classList.remove('on');},9000);
+});
+
+// ══════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const tabs=['improve','gaming','finance','email','gesture'];
+    t.classList.toggle('active',tabs[i]===name);
+    document.getElementById('tab-'+tabs[i]).classList.toggle('active',tabs[i]===name);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IMPROVEMENT PANEL
+// ══════════════════════════════════════════════════════════════════
+let pendingImproveName='';
+function requestImprovement(){
+  const req=document.getElementById('improve-input').value.trim();
+  if(!req)return;
+  document.getElementById('improve-input').value='';
+  send('améliore-toi: '+req);
+  showToast('⚡ Génération du code en cours...');
+}
+function showImprovementPreview(data){
+  switchTab('improve');
+  document.getElementById('imp-title').textContent=data.function_name||'NOUVELLE FONCTION';
+  document.getElementById('imp-desc').textContent=data.description||data.request||'';
+  document.getElementById('imp-code').textContent=(data.code||'').slice(0,300)+(data.code?.length>300?'\n...':'');
+  document.getElementById('imp-safe').textContent=data.safe?'✓ CODE VALIDÉ — SÉCURISÉ':'⚠️ VÉRIFIEZ LE CODE AVANT INSTALLATION';
+  document.getElementById('imp-safe').style.color=data.safe?'rgba(0,255,140,.5)':'rgba(255,200,0,.6)';
+  document.getElementById('improve-preview').style.display='block';
+  pendingImproveName=data.function_name||'last';
+  showToast('Code généré — Vérifiez et cliquez INSTALLER');
+}
+function confirmInstall(){
+  send('installe');
+  document.getElementById('improve-preview').style.display='none';
+}
+function cancelInstall(){
+  send('annule');
+  document.getElementById('improve-preview').style.display='none';
+}
+function showBackups(backups){
+  const el=document.getElementById('backups-list');
+  if(!backups||!backups.length){el.innerHTML='<div style="font-size:8px;color:rgba(0,238,255,.2);">Aucun backup.</div>';return;}
+  el.innerHTML=backups.slice(0,5).map(b=>`
+    <div class="backup-item" onclick="restoreBackup('${b.dir}')" title="Cliquer pour restaurer">
+      <span class="backup-ts">${b.timestamp?.slice(0,16)||'--'}</span>
+      <span class="backup-reason">${b.reason||''}</span>
+    </div>`).join('');
+}
+function restoreBackup(dir){
+  if(confirm(`Restaurer le backup ${dir} ?`)) send('restaure le backup '+dir);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GAMING PANEL
+// ══════════════════════════════════════════════════════════════════
+function showGameDeals(deals){
+  switchTab('gaming');
+  if(!deals||!deals.length)return;
+  document.getElementById('game-deals-list').innerHTML=
+    '<div style="font-size:7.5px;color:rgba(255,204,0,.4);letter-spacing:1px;margin-bottom:4px;">OFFRES STEAM</div>'+
+    deals.slice(0,4).map(d=>`<div class="deal-item">
+      <div class="deal-title">${(d.title||'').slice(0,28)}</div>
+      <div><span class="deal-price">${d.salePrice||'?'}$</span>
+      <span style="color:rgba(255,220,120,.4);text-decoration:line-through;font-size:8px;margin-left:4px;">${d.normalPrice||'?'}$</span>
+      <span class="deal-save"> -${parseFloat(d.savings||0).toFixed(0)}%</span></div>
+    </div>`).join('');
+}
+function showGameRecs(text){
+  switchTab('gaming');
+  document.getElementById('game-recs-list').innerHTML=
+    '<div style="font-size:7.5px;color:rgba(0,238,255,.35);letter-spacing:1px;margin:6px 0 4px;">RECOMMANDATIONS IA</div>'+
+    `<div style="font-size:9px;color:rgba(185,240,255,.7);line-height:1.7;">${esc(text)}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FINANCE PANEL
+// ══════════════════════════════════════════════════════════════════
+function showCrypto(data){
+  switchTab('finance');
+  const names={'bitcoin':'BTC','ethereum':'ETH','solana':'SOL','binancecoin':'BNB'};
+  document.getElementById('crypto-list').innerHTML=
+    '<div style="font-size:7.5px;color:rgba(255,204,0,.35);letter-spacing:1px;margin-bottom:4px;">CRYPTOMONNAIES</div>'+
+    Object.entries(data).map(([id,val])=>{
+      const chg=val.eur_24h_change||0;
+      return `<div class="crypto-row">
+        <span class="crypto-name">${names[id]||id.toUpperCase().slice(0,4)}</span>
+        <span class="crypto-price">${val.eur?.toLocaleString('fr-FR')||'?'}€</span>
+        <span class="${chg>=0?'crypto-up':'crypto-down'}">${chg>=0?'▲':'▼'}${Math.abs(chg).toFixed(1)}%</span>
+      </div>`;
+    }).join('');
+}
+function showStocks(data){
+  document.getElementById('stock-list').innerHTML=
+    '<div style="font-size:7.5px;color:rgba(0,255,140,.35);letter-spacing:1px;margin-bottom:4px;">ACTIONS</div>'+
+    data.map(s=>`<div class="crypto-row"><span style="font-size:9px;color:rgba(185,240,255,.8);">${s}</span></div>`).join('');
+}
+function showFinanceAnalysis(text){
+  const el=document.getElementById('finance-analysis');
+  el.textContent=text; el.style.display='block';
+  switchTab('finance');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// EMAIL PANEL
+// ══════════════════════════════════════════════════════════════════
+function composeEmail(){
+  const to=document.getElementById('email-to').value.trim();
+  const subj=document.getElementById('email-subj').value.trim();
+  const msg=document.getElementById('email-msg').value.trim();
+  if(!to||!msg){showToast('Remplissez au moins: À et Message');return;}
+  send(`envoie un email à ${to} objet ${subj||'Message'} disant ${msg}`);
+  switchTab('email');
+}
+function showEmailDraft(draft){
+  switchTab('email');
+  document.getElementById('draft-to').textContent=draft.to||'';
+  document.getElementById('draft-subj').textContent=draft.subject||'';
+  document.getElementById('draft-body').textContent=draft.body||'';
+  document.getElementById('email-draft-panel').style.display='block';
+  showToast('✉️ Email rédigé — Vérifiez avant envoi');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GESTURE PANEL
+// ══════════════════════════════════════════════════════════════════
+function showGestureStatus(gesture){
+  const el=document.getElementById('gesture-status');
+  const labels={'fist':'✊ JARVIS ACTIVÉ','open':'🖐️ STOP','thumbs_up':'👍 CONFIRMER','thumbs_down':'👎 ANNULER','two':'✌️ SCROLL'};
+  el.textContent=labels[gesture]||gesture;
+  el.style.display='inline-block';
+  setTimeout(()=>el.style.display='none',2500);
+}
+
+// HAND TRACKING VISUAL
+let handCtx=null;
+function initHandCanvas(){
+  const hc=document.getElementById('hand-canvas');
+  handCtx=hc.getContext('2d');
+  hc.width=hc.offsetWidth; hc.height=100;
+}
+initHandCanvas();
+
+// ══════════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.display='none',3500);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// LOG (console interne)
+// ══════════════════════════════════════════════════════════════════
+// Logs dans le chat pour visibilité
+
+// ══════════════════════════════════════════════════════════════════
+// FOOTER
+// ══════════════════════════════════════════════════════════════════
+const FM=['⬡ CLAUDE·GROQ·MISTRAL·GEMINI·LOCAL ⬡','⬡ ELEVENLABS VOICE ACTIVE ⬡',
+  '⬡ AUTO-MOD + BACKUP SYSTEM ⬡','⬡ RTX 4070 · 16Go RAM ⬡',
+  '⬡ EMAIL · INSTAGRAM · GESTES ⬡','⬡ GAMING · FINANCE · CARTE ⬡'];
+let fi=0;
+setInterval(()=>{fi=(fi+1)%FM.length;document.getElementById('fmid').textContent=FM[fi];},5000);
+</script>
+</body>
+</html>

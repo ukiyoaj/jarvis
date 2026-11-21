@@ -1,0 +1,24 @@
+# ─── Secrets : ne JAMAIS envoyer sur GitHub ───
+config.json
+*.env
+.env
+
+# ─── Données perso de JARVIS ───
+brain/
+backups/
+plugins/
+*.log
+*.db
+
+# ─── Python ───
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ─── Divers ───
+fix_jarvis.py
+{ui,brain,backups,plugins}/
+Thumbs.db
+desktop.ini
+.vscode/

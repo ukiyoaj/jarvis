@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JARVIS — CARTE HOLOGRAPHIQUE</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --c:#00eeff;--c2:#0055ff;--g:#00ff9d;--r:#ff2244;--gold:#ffcc00;
+  --pu:#aa44ff;--bg:#000810;--p:rgba(0,12,28,.95);--b:rgba(0,238,255,.18);
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--c);
+  font-family:'Share Tech Mono',monospace;overflow:hidden;}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-rows:56px 1fr 52px;height:100vh;
+  grid-template-columns:280px 1fr;gap:0;}
+
+/* ── HEADER ── */
+#hdr{grid-column:1/-1;background:rgba(0,8,20,.97);
+  border-bottom:1px solid var(--b);display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;position:relative;z-index:100;}
+#hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--c),transparent);
+  animation:hline 4s ease-in-out infinite;}
+@keyframes hline{0%,100%{opacity:.3}50%{opacity:1}}
+.htitle{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;
+  letter-spacing:8px;text-shadow:0 0 20px var(--c);}
+.hsub{font-size:8px;letter-spacing:3px;color:rgba(0,238,255,.3);margin-top:1px;}
+.hright{display:flex;align-items:center;gap:16px;}
+.hbadge{font-size:8px;letter-spacing:2px;padding:4px 10px;
+  border:1px solid rgba(0,238,255,.25);border-radius:2px;
+  color:rgba(0,238,255,.5);}
+.hbadge.on{color:var(--g);border-color:rgba(0,255,140,.3);
+  animation:badgePulse 2s infinite;}
+@keyframes badgePulse{0%,100%{opacity:.7}50%{opacity:1}}
+#clock-h{font-family:'Orbitron',monospace;font-size:14px;color:var(--c);
+  text-shadow:0 0 10px var(--c);}
+
+/* ── SIDEBAR ── */
+#side{background:rgba(0,8,20,.98);border-right:1px solid var(--b);
+  display:flex;flex-direction:column;gap:0;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(0,238,255,.15) transparent;}
+
+.sp{padding:14px;border-bottom:1px solid rgba(0,238,255,.07);}
+.sp-title{font-family:'Orbitron',monospace;font-size:7.5px;letter-spacing:3px;
+  color:rgba(0,238,255,.35);text-transform:uppercase;margin-bottom:10px;}
+
+/* SEARCH */
+#search-wrap{position:relative;}
+#search{width:100%;background:rgba(0,238,255,.04);border:1px solid rgba(0,238,255,.2);
+  border-radius:2px;padding:8px 10px 8px 28px;color:var(--c);outline:none;
+  font-family:'Share Tech Mono',monospace;font-size:12px;
+  caret-color:var(--c);transition:border-color .2s;}
+#search::placeholder{color:rgba(0,238,255,.2);}
+#search:focus{border-color:rgba(0,238,255,.5);box-shadow:0 0 10px rgba(0,238,255,.1);}
+#search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  font-size:12px;opacity:.4;}
+#search-btn{width:100%;margin-top:6px;background:linear-gradient(90deg,rgba(0,85,255,.3),rgba(0,238,255,.2));
+  border:1px solid rgba(0,238,255,.3);color:var(--c);font-family:'Orbitron',monospace;
+  font-size:8px;letter-spacing:2px;padding:7px;cursor:pointer;border-radius:2px;
+  transition:all .15s;text-transform:uppercase;}
+#search-btn:hover{background:linear-gradient(90deg,rgba(0,85,255,.5),rgba(0,238,255,.35));
+  box-shadow:0 0 15px rgba(0,238,255,.2);}
+
+/* QUICK LOCATIONS */
+.ql-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.ql{padding:7px 8px;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.1);
+  border-radius:2px;cursor:pointer;font-size:9px;letter-spacing:.8px;
+  color:rgba(0,238,255,.5);transition:all .18s;text-align:center;}
+.ql:hover{background:rgba(0,238,255,.08);border-color:rgba(0,238,255,.3);color:var(--c);}
+.ql-icon{display:block;font-size:14px;margin-bottom:2px;}
+
+/* MAP TYPES */
+.mt-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.mt{padding:8px;background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.1);
+  border-radius:2px;cursor:pointer;font-size:8px;letter-spacing:1px;
+  color:rgba(0,238,255,.45);transition:all .18s;text-align:center;}
+.mt:hover,.mt.active{background:rgba(0,238,255,.1);border-color:var(--c);color:var(--c);}
+
+/* INFO PANEL */
+.info-row{display:flex;justify-content:space-between;padding:4px 0;
+  border-bottom:1px solid rgba(0,238,255,.05);font-size:9px;}
+.ir-label{color:rgba(0,238,255,.35);letter-spacing:.5px;}
+.ir-val{color:rgba(185,240,255,.8);}
+
+/* COORDS */
+#coords{font-size:9px;color:rgba(0,238,255,.4);letter-spacing:1px;
+  text-align:center;margin-top:6px;}
+
+/* LAYERS TOGGLE */
+.layer-row{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(0,238,255,.05);}
+.layer-name{font-size:9px;color:rgba(0,238,255,.45);letter-spacing:.8px;}
+.toggle{width:32px;height:16px;background:rgba(0,238,255,.1);border-radius:8px;
+  position:relative;cursor:pointer;border:1px solid rgba(0,238,255,.2);transition:.2s;}
+.toggle.on{background:rgba(0,238,255,.3);border-color:rgba(0,238,255,.5);}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;
+  border-radius:50%;background:rgba(0,238,255,.5);transition:.2s;}
+.toggle.on::after{left:18px;background:var(--c);box-shadow:0 0 6px var(--c);}
+
+/* ── MAP AREA ── */
+#map-container{position:relative;overflow:hidden;background:#000810;}
+#map{width:100%;height:100%;z-index:1;}
+
+/* MAP OVERLAY EFFECTS */
+#map-overlay{position:absolute;inset:0;pointer-events:none;z-index:10;}
+#scan-v{position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(0,238,255,.4),transparent);
+  animation:vscan 6s linear infinite;z-index:11;}
+@keyframes vscan{0%{top:0;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+#vignette-map{position:absolute;inset:0;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,5,15,.6) 100%);}
+
+/* HUD ELEMENTS on map */
+#hud-tl{position:absolute;top:12px;left:12px;z-index:20;
+  background:rgba(0,8,20,.85);border:1px solid rgba(0,238,255,.2);
+  border-radius:2px;padding:8px 12px;backdrop-filter:blur(8px);}
+#hud-tr{position:absolute;top:12px;right:12px;z-index:20;
+  background:rgba(0,8,20,.85);border:1px solid rgba(0,238,255,.2);
+  border-radius:2px;padding:8px 12px;backdrop-filter:blur(8px);}
+#hud-br{position:absolute;bottom:12px;right:12px;z-index:20;
+  background:rgba(0,8,20,.85);border:1px solid rgba(0,238,255,.2);
+  border-radius:2px;padding:8px 12px;backdrop-filter:blur(8px);}
+.hud-label{font-size:7px;letter-spacing:2px;color:rgba(0,238,255,.35);
+  text-transform:uppercase;margin-bottom:3px;}
+.hud-val{font-family:'Orbitron',monospace;font-size:12px;color:var(--c);
+  text-shadow:0 0 8px rgba(0,238,255,.4);}
+.hud-val-sm{font-size:10px;}
+
+/* TARGET RETICLE */
+#reticle{position:absolute;top:50%;left:50%;z-index:20;pointer-events:none;
+  transform:translate(-50%,-50%);width:40px;height:40px;opacity:.4;}
+#reticle::before,#reticle::after{content:'';position:absolute;}
+#reticle::before{top:50%;left:0;right:0;height:1px;background:var(--c);}
+#reticle::after{left:50%;top:0;bottom:0;width:1px;background:var(--c);}
+.ret-ring{position:absolute;border:1px solid var(--c);border-radius:50%;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:retPulse 3s ease-in-out infinite;}
+.ret-ring:nth-child(1){width:20px;height:20px;}
+.ret-ring:nth-child(2){width:36px;height:36px;animation-delay:.5s;opacity:.5;}
+@keyframes retPulse{0%,100%{opacity:.3;transform:translate(-50%,-50%) scale(1)}
+  50%{opacity:.7;transform:translate(-50%,-50%) scale(1.1)}}
+
+/* ZOOM CONTROLS custom */
+.leaflet-control-zoom{background:rgba(0,8,20,.9)!important;
+  border:1px solid rgba(0,238,255,.25)!important;border-radius:2px!important;}
+.leaflet-control-zoom a{background:transparent!important;color:var(--c)!important;
+  font-family:'Orbitron',monospace!important;border-bottom:1px solid rgba(0,238,255,.15)!important;}
+.leaflet-control-zoom a:hover{background:rgba(0,238,255,.1)!important;}
+
+/* LOADING */
+#loading{position:absolute;inset:0;background:rgba(0,5,15,.9);z-index:50;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;transition:opacity .5s;}
+.load-ring{width:60px;height:60px;border:1px solid rgba(0,238,255,.1);
+  border-top:2px solid var(--c);border-radius:50%;animation:spin 1s linear infinite;
+  box-shadow:0 0 20px rgba(0,238,255,.2);}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;
+  color:rgba(0,238,255,.5);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ── FOOTER ── */
+#ftr{grid-column:1/-1;background:rgba(0,8,20,.97);
+  border-top:1px solid var(--b);display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;font-size:8px;
+  letter-spacing:2px;color:rgba(0,238,255,.2);}
+#ftr-mid{transition:all .5s;}
+
+/* LEAFLET POPUP custom */
+.leaflet-popup-content-wrapper{background:rgba(0,10,25,.95)!important;
+  border:1px solid rgba(0,238,255,.3)!important;border-radius:3px!important;
+  box-shadow:0 0 20px rgba(0,238,255,.15)!important;color:var(--c)!important;
+  font-family:'Share Tech Mono',monospace!important;font-size:11px!important;}
+.leaflet-popup-tip{background:rgba(0,10,25,.95)!important;}
+.leaflet-popup-close-button{color:var(--c)!important;}
+
+/* CORNER BRACKETS */
+.corner{position:fixed;width:30px;height:30px;pointer-events:none;z-index:200;}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--c);opacity:.5;}
+.corner::before{width:100%;height:1px}.corner::after{width:1px;height:100%}
+.ctlx{top:5px;left:5px}.ctrx{top:5px;right:5px;transform:scaleX(-1)}
+.cblx{bottom:5px;left:5px;transform:scaleY(-1)}.cbrx{bottom:5px;right:5px;transform:scale(-1)}
+
+/* NOTIFICATION */
+#notif{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+  background:rgba(0,12,28,.97);border:1px solid rgba(0,238,255,.35);
+  padding:10px 20px;border-radius:2px;font-size:10px;letter-spacing:1px;
+  color:var(--c);display:none;z-index:300;white-space:nowrap;
+  box-shadow:0 0 20px rgba(0,238,255,.15);}
+
+/* 3D TILT EFFECT on map */
+#map-container{perspective:1000px;}
+</style>
+</head>
+<body>
+
+<div class="corner ctlx"></div><div class="corner ctrx"></div>
+<div class="corner cblx"></div><div class="corner cbrx"></div>
+<div id="notif"></div>
+
+<div id="app">
+
+<!-- HEADER -->
+<div id="hdr">
+  <div>
+    <div class="htitle">JARVIS — CARTOGRAPHIE</div>
+    <div class="hsub">SYSTÈME HOLOGRAPHIQUE v3.0</div>
+  </div>
+  <div class="hright">
+    <div class="hbadge on" id="online-badge">DONNÉES: EN LIGNE</div>
+    <div class="hbadge">RÉSOLUTION: HD</div>
+    <div id="clock-h">--:--:--</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="side">
+
+  <!-- SEARCH -->
+  <div class="sp">
+    <div class="sp-title">Recherche de Localisation</div>
+    <div id="search-wrap">
+      <span id="search-icon">⌕</span>
+      <input id="search" placeholder="Ville, pays, lieu, coordonnées..." autocomplete="off"/>
+    </div>
+    <button id="search-btn" onclick="searchLocation()">⬡ LOCALISER LA CIBLE</button>
+  </div>
+
+  <!-- QUICK LOCS -->
+  <div class="sp">
+    <div class="sp-title">Cibles Rapides</div>
+    <div class="ql-grid">
+      <div class="ql" onclick="flyTo(48.8566,2.3522,13,'Paris')"><span class="ql-icon">🗼</span>Paris</div>
+      <div class="ql" onclick="flyTo(51.5074,-0.1278,12,'Londres')"><span class="ql-icon">🌉</span>Londres</div>
+      <div class="ql" onclick="flyTo(40.7128,-74.006,12,'New York')"><span class="ql-icon">🗽</span>New York</div>
+      <div class="ql" onclick="flyTo(35.6762,139.6503,12,'Tokyo')"><span class="ql-icon">🗾</span>Tokyo</div>
+      <div class="ql" onclick="flyTo(25.2048,55.2708,13,'Dubai')"><span class="ql-icon">🏙️</span>Dubai</div>
+      <div class="ql" onclick="flyTo(-33.8688,151.2093,12,'Sydney')"><span class="ql-icon">🦘</span>Sydney</div>
+      <div class="ql" onclick="flyTo(55.7558,37.6173,12,'Moscou')"><span class="ql-icon">🏛️</span>Moscou</div>
+      <div class="ql" onclick="flyTo(19.4326,-99.1332,12,'Mexico')"><span class="ql-icon">🌮</span>Mexico</div>
+    </div>
+  </div>
+
+  <!-- MODES CARTOGRAPHIQUES -->
+  <div class="sp">
+    <div class="sp-title">Mode Cartographique</div>
+    <div class="mt-grid">
+      <div class="mt active" id="mt-holo" onclick="setMapMode('holo')">⬡ HOLO</div>
+      <div class="mt" id="mt-network" onclick="setMapMode('network')">◈ RÉSEAU</div>
+      <div class="mt" id="mt-satellite" onclick="setMapMode('satellite')">◎ SATELLITE</div>
+      <div class="mt" id="mt-terrain" onclick="setMapMode('terrain')">▲ TERRAIN</div>
+      <div class="mt" id="mt-dark" onclick="setMapMode('dark')">● SOMBRE</div>
+      <div class="mt" id="mt-heat" onclick="setMapMode('heat')">◈ HEAT MAP</div>
+    </div>
+  </div>
+
+  <!-- COUCHES -->
+  <div class="sp">
+    <div class="sp-title">Couches d'Analyse</div>
+    <div class="layer-row">
+      <span class="layer-name">GRILLE HOLOGRAPHIQUE</span>
+      <div class="toggle on" id="tgl-grid" onclick="toggleLayer('grid',this)"></div>
+    </div>
+    <div class="layer-row">
+      <span class="layer-name">MARQUEURS CIBLES</span>
+      <div class="toggle on" id="tgl-markers" onclick="toggleLayer('markers',this)"></div>
+    </div>
+    <div class="layer-row">
+      <span class="layer-name">COORDONNÉES HUD</span>
+      <div class="toggle on" id="tgl-hud" onclick="toggleLayer('hud',this)"></div>
+    </div>
+    <div class="layer-row">
+      <span class="layer-name">SCAN ANIMÉ</span>
+      <div class="toggle on" id="tgl-scan" onclick="toggleLayer('scan',this)"></div>
+    </div>
+  </div>
+
+  <!-- VUES SPÉCIALES -->
+  <div class="sp">
+    <div class="sp-title">Vues Spéciales</div>
+    <div class="ql-grid">
+      <div class="ql" onclick="showPlanet()" style="border-color:rgba(0,255,140,.2);color:rgba(0,255,140,.6)"><span class="ql-icon">🌍</span>PLANÈTE</div>
+      <div class="ql" onclick="showSpace()" style="border-color:rgba(170,68,255,.2);color:rgba(170,68,255,.6)"><span class="ql-icon">🌌</span>ESPACE</div>
+      <div class="ql" onclick="showOceans()" style="border-color:rgba(0,100,255,.2);color:rgba(0,150,255,.6)"><span class="ql-icon">🌊</span>OCÉANS</div>
+      <div class="ql" onclick="showNightLights()" style="border-color:rgba(255,204,0,.2);color:rgba(255,204,0,.6)"><span class="ql-icon">🌃</span>NUIT</div>
+    </div>
+  </div>
+
+  <!-- INFOS CIBLE -->
+  <div class="sp">
+    <div class="sp-title">Cible Active</div>
+    <div class="info-row"><span class="ir-label">LOCALISATION</span><span class="ir-val" id="inf-loc">—</span></div>
+    <div class="info-row"><span class="ir-label">LATITUDE</span><span class="ir-val" id="inf-lat">—</span></div>
+    <div class="info-row"><span class="ir-label">LONGITUDE</span><span class="ir-val" id="inf-lon">—</span></div>
+    <div class="info-row"><span class="ir-label">ZOOM</span><span class="ir-val" id="inf-zoom">—</span></div>
+    <div class="info-row" style="border:none"><span class="ir-label">FUSEAU</span><span class="ir-val" id="inf-tz">—</span></div>
+  </div>
+
+  <!-- MESURE -->
+  <div class="sp">
+    <div class="sp-title">Outils</div>
+    <button class="search-btn" onclick="getMyLocation()" 
+      style="width:100%;background:rgba(0,255,140,.1);border:1px solid rgba(0,255,140,.2);
+      color:var(--g);font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;
+      padding:7px;cursor:pointer;border-radius:2px;margin-bottom:5px;">
+      ◎ MA POSITION
+    </button>
+    <button onclick="clearMarkers()"
+      style="width:100%;background:rgba(255,34,68,.05);border:1px solid rgba(255,34,68,.2);
+      color:rgba(255,100,100,.6);font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;
+      padding:7px;cursor:pointer;border-radius:2px;">
+      ✕ EFFACER MARQUEURS
+    </button>
+  </div>
+
+</div>
+
+<!-- MAP -->
+<div id="map-container">
+  <div id="loading">
+    <div class="load-ring"></div>
+    <div class="load-txt">INITIALISATION CARTOGRAPHIE...</div>
+  </div>
+
+  <div id="map-overlay">
+    <div id="scan-v"></div>
+    <div id="vignette-map"></div>
+  </div>
+
+  <div id="reticle">
+    <div class="ret-ring"></div>
+    <div class="ret-ring"></div>
+  </div>
+
+  <!-- HUD TOP LEFT -->
+  <div id="hud-tl">
+    <div class="hud-label">Coordonnées Cible</div>
+    <div class="hud-val hud-val-sm" id="hud-coords">48.8566° N / 2.3522° E</div>
+  </div>
+
+  <!-- HUD TOP RIGHT -->
+  <div id="hud-tr">
+    <div class="hud-label">Zoom / Altitude</div>
+    <div class="hud-val" id="hud-zoom">13</div>
+  </div>
+
+  <!-- HUD BOTTOM RIGHT -->
+  <div id="hud-br">
+    <div class="hud-label">Mode Actif</div>
+    <div class="hud-val hud-val-sm" id="hud-mode">HOLOGRAPHIQUE</div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<!-- FOOTER -->
+<div id="ftr">
+  <span>JARVIS ULTIMATE v3.0 · CARTOGRAPHIE HOLOGRAPHIQUE</span>
+  <span id="ftr-mid">⬡ SYSTÈME OPÉRATIONNEL ⬡</span>
+  <span>TUILES: ESRI · OPENTOPOMAP · STADIA</span>
+</div>
+
+</div><!-- end app -->
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+function tick(){document.getElementById('clock-h').textContent=new Date().toTimeString().slice(0,8);}
+setInterval(tick,1000); tick();
+
+// ══════════════════════════════════════════════════════════
+// MAP INIT — Style holographique comme @Huw Prosser
+// ══════════════════════════════════════════════════════════
+const MAP_TILES = {
+  holo: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attr: '© Esri',
+    name: 'HOLOGRAPHIQUE'
+  },
+  network: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attr: '© Esri',
+    name: 'RÉSEAU'
+  },
+  satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attr: '© Esri',
+    name: 'SATELLITE'
+  },
+  terrain: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attr: '© OpenTopoMap',
+    name: 'TERRAIN'
+  },
+  dark: {
+    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    attr: '© Stadia Maps',
+    name: 'SOMBRE'
+  },
+  heat: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attr: '© Esri',
+    name: 'HEAT MAP'
+  }
+};
+
+let map, currentLayer, currentMode='holo', markers=[], gridOverlay;
+
+// Init map
+map = L.map('map', {
+  center: [48.8566, 2.3522],
+  zoom: 13,
+  zoomControl: true,
+  attributionControl: false,
+});
+
+// Tile layer initial
+currentLayer = L.tileLayer(MAP_TILES.holo.url, {
+  attribution: MAP_TILES.holo.attr,
+  subdomains: 'abcd',
+  maxZoom: 16,
+}).addTo(map);
+
+// Apply holographic CSS filter to map tiles
+function applyMapFilter(mode){
+  const filters = {
+    holo:    'hue-rotate(180deg) saturate(3) brightness(1.2) contrast(1.1)',
+    network: 'hue-rotate(120deg) saturate(5) brightness(1.4) contrast(1.3)',
+    satellite: 'saturate(1.3) brightness(.9) contrast(1.1)',
+    terrain: 'hue-rotate(90deg) saturate(2) brightness(.9)',
+    dark:    'brightness(.95) contrast(1.2)',
+    heat:    'hue-rotate(30deg) saturate(4) brightness(1.3)',
+  };
+  const f = filters[mode] || filters.holo;
+  const pane = document.querySelector('.leaflet-map-pane');
+  if(pane) pane.style.filter = f;
+}
+
+// Hide loading after map loads
+map.on('load', ()=>hideLoading());
+setTimeout(hideLoading, 2000);
+function hideLoading(){
+  const l=document.getElementById('loading');
+  l.style.opacity='0'; setTimeout(()=>l.style.display='none',500);
+  applyMapFilter('holo');
+  addHoloGrid();
+  notify('CARTOGRAPHIE INITIALISÉE');
+}
+
+// Update HUD on move
+map.on('move', updateHUD);
+map.on('zoom', updateHUD);
+map.on('click', (e)=>{
+  const {lat,lng}=e.latlng;
+  addTargetMarker(lat,lng);
+  updateInfoPanel(lat,lng,`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+});
+
+function updateHUD(){
+  const c=map.getCenter(), z=map.getZoom();
+  document.getElementById('hud-coords').textContent=
+    `${Math.abs(c.lat).toFixed(4)}° ${c.lat>=0?'N':'S'} / ${Math.abs(c.lng).toFixed(4)}° ${c.lng>=0?'E':'W'}`;
+  document.getElementById('hud-zoom').textContent=z;
+  document.getElementById('inf-lat').textContent=c.lat.toFixed(6)+'°';
+  document.getElementById('inf-lon').textContent=c.lng.toFixed(6)+'°';
+  document.getElementById('inf-zoom').textContent=`${z} / 20`;
+}
+
+// ══════════════════════════════════════════════════════════
+// HOLOGRAPHIC GRID OVERLAY (style réseau comme TikTok)
+// ══════════════════════════════════════════════════════════
+function addHoloGrid(){
+  if(gridOverlay) map.removeLayer(gridOverlay);
+  // SVG overlay holographique
+  const svgNS='http://www.w3.org/2000/svg';
+  // On utilise un canvas overlay Leaflet pour la grille
+  gridOverlay = L.layerGroup().addTo(map);
+}
+
+// Canvas overlay pour effets holo
+const HoloCanvas = L.Layer.extend({
+  onAdd(map){
+    this._map=map;
+    const pane=map.getPanes().overlayPane;
+    this._canvas=document.createElement('canvas');
+    this._canvas.style.position='absolute';
+    this._canvas.style.pointerEvents='none';
+    this._canvas.style.zIndex=5;
+    pane.appendChild(this._canvas);
+    map.on('move zoom resize',this._update,this);
+    this._update();
+  },
+  onRemove(map){
+    map.getPanes().overlayPane.removeChild(this._canvas);
+    map.off('move zoom resize',this._update,this);
+  },
+  _update(){
+    const size=this._map.getSize();
+    this._canvas.width=size.x; this._canvas.height=size.y;
+    this._canvas.style.left='0'; this._canvas.style.top='0';
+    const ctx=this._canvas.getContext('2d');
+    ctx.clearRect(0,0,size.x,size.y);
+    
+    const mode=currentMode;
+    
+    // Grid lignes holo
+    if(document.getElementById('tgl-grid').classList.contains('on')){
+      ctx.strokeStyle=mode==='network'?'rgba(0,255,140,0.12)':'rgba(0,238,255,0.08)';
+      ctx.lineWidth=.5;
+      const step=60;
+      for(let x=0;x<size.x;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,size.y);ctx.stroke();}
+      for(let y=0;y<size.y;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(size.x,y);ctx.stroke();}
+      
+      // Points d'intersection lumineux
+      ctx.fillStyle=mode==='network'?'rgba(0,255,140,0.2)':'rgba(0,238,255,0.15)';
+      for(let x=0;x<size.x;x+=step)
+        for(let y=0;y<size.y;y+=step){
+          ctx.beginPath(); ctx.arc(x,y,1.2,0,Math.PI*2); ctx.fill();
+        }
+    }
+    
+    // Mode RÉSEAU : lignes de connexion aléatoires style @Huw Prosser
+    if(mode==='network'){
+      ctx.strokeStyle='rgba(0,255,140,0.06)'; ctx.lineWidth=.5;
+      const pts=Array.from({length:30},()=>({x:Math.random()*size.x,y:Math.random()*size.y}));
+      pts.forEach((p,i)=>{
+        pts.slice(i+1).forEach(q=>{
+          const d=Math.sqrt((p.x-q.x)**2+(p.y-q.y)**2);
+          if(d<150){
+            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+          }
+        });
+      });
+      pts.forEach(p=>{
+        ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2);
+        ctx.fillStyle='rgba(0,255,140,0.3)'; ctx.fill();
+      });
+    }
+    
+    // Vignette bord
+    const vgrad=ctx.createRadialGradient(size.x/2,size.y/2,size.y*.2,size.x/2,size.y/2,size.y*.8);
+    vgrad.addColorStop(0,'transparent');
+    vgrad.addColorStop(1,'rgba(0,5,15,0.5)');
+    ctx.fillStyle=vgrad; ctx.fillRect(0,0,size.x,size.y);
+  }
+});
+new HoloCanvas().addTo(map);
+
+// ══════════════════════════════════════════════════════════
+// MARQUEURS HOLOGRAPHIQUES
+// ══════════════════════════════════════════════════════════
+function createHoloIcon(color='#00eeff'){
+  return L.divIcon({
+    className:'',
+    html:`<div style="
+      width:24px;height:24px;position:relative;
+      display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:0;border:1px solid ${color};border-radius:50%;
+        box-shadow:0 0 8px ${color},inset 0 0 8px rgba(0,0,0,.5);
+        animation:pulse 2s ease-in-out infinite;
+        --c:${color};"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:${color};
+        box-shadow:0 0 6px ${color};"></div>
+      <div style="position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+        width:1px;height:4px;background:${color};opacity:.7;"></div>
+      <div style="position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+        width:1px;height:4px;background:${color};opacity:.7;"></div>
+      <div style="position:absolute;left:-4px;top:50%;transform:translateY(-50%);
+        width:4px;height:1px;background:${color};opacity:.7;"></div>
+      <div style="position:absolute;right:-4px;top:50%;transform:translateY(-50%);
+        width:4px;height:1px;background:${color};opacity:.7;"></div>
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}</style>`,
+    iconSize:[24,24], iconAnchor:[12,12],
+  });
+}
+
+function addTargetMarker(lat,lng,label='',color='#00eeff'){
+  const marker=L.marker([lat,lng],{icon:createHoloIcon(color)})
+    .addTo(map)
+    .bindPopup(`<div style="font-family:'Share Tech Mono',monospace">
+      <div style="font-size:8px;letter-spacing:2px;color:rgba(0,238,255,.5);margin-bottom:4px">CIBLE VERROUILLÉE</div>
+      <div style="font-size:11px;color:#00eeff">${label||`${lat.toFixed(4)}, ${lng.toFixed(4)}`}</div>
+      <div style="font-size:9px;color:rgba(0,238,255,.4);margin-top:3px">${lat.toFixed(6)}° / ${lng.toFixed(6)}°</div>
+    </div>`);
+  markers.push(marker);
+  return marker;
+}
+
+function clearMarkers(){
+  markers.forEach(m=>map.removeLayer(m)); markers=[]; notify('MARQUEURS EFFACÉS');
+}
+
+// ══════════════════════════════════════════════════════════
+// FLY TO — Animation de vol cinématique
+// ══════════════════════════════════════════════════════════
+function flyTo(lat,lng,zoom,name){
+  notify(`NAVIGATION VERS: ${name||'CIBLE'}`);
+  map.flyTo([lat,lng],zoom,{duration:2,easeLinearity:.25});
+  addTargetMarker(lat,lng,name,'#00eeff');
+  updateInfoPanel(lat,lng,name||`${lat},${lng}`);
+  setTimeout(()=>{
+    if(name) fetchLocationInfo(name);
+  },500);
+}
+
+function updateInfoPanel(lat,lng,name){
+  document.getElementById('inf-loc').textContent=name.slice(0,20)||'—';
+  document.getElementById('inf-lat').textContent=lat.toFixed(6)+'°';
+  document.getElementById('inf-lon').textContent=lng.toFixed(6)+'°';
+  document.getElementById('inf-tz').textContent=getTimezone(lat,lng);
+}
+
+function getTimezone(lat,lng){
+  const offset=Math.round(lng/15);
+  return `UTC${offset>=0?'+':''}${offset}`;
+}
+
+// ══════════════════════════════════════════════════════════
+// GEOCODING (recherche)
+// ══════════════════════════════════════════════════════════
+async function searchLocation(){
+  const q=document.getElementById('search').value.trim();
+  if(!q) return;
+  notify('RECHERCHE EN COURS...');
+  
+  try{
+    const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+    const r=await fetch(url,{headers:{'Accept-Language':'fr'}});
+    const data=await r.json();
+    
+    if(data && data.length>0){
+      const {lat,lon,display_name}=data[0];
+      const name=display_name.split(',')[0];
+      flyTo(parseFloat(lat),parseFloat(lon),13,name);
+      notify(`CIBLE LOCALISÉE: ${name.toUpperCase()}`);
+    } else {
+      // Fallback: essayer comme coordonnées
+      const coords=q.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+      if(coords){
+        flyTo(parseFloat(coords[1]),parseFloat(coords[2]),13,q);
+      } else {
+        notify('LOCALISATION INTROUVABLE');
+      }
+    }
+  } catch(e){
+    notify('MODE HORS-LIGNE — COORDONNÉES REQUISES');
+    // Offline: chercher dans la base interne
+    const offline=findOffline(q);
+    if(offline) flyTo(offline.lat,offline.lng,offline.z,offline.name);
+  }
+}
+
+// Base offline des villes principales
+const OFFLINE_CITIES={
+  'paris':{lat:48.8566,lng:2.3522,z:13},'london':{lat:51.5074,lng:-0.1278,z:12},
+  'londre':{lat:51.5074,lng:-0.1278,z:12},'new york':{lat:40.7128,lng:-74.006,z:12},
+  'tokyo':{lat:35.6762,lng:139.6503,z:12},'dubai':{lat:25.2048,lng:55.2708,z:13},
+  'sydney':{lat:-33.8688,lng:151.2093,z:12},'moscow':{lat:55.7558,lng:37.6173,z:12},
+  'moscou':{lat:55.7558,lng:37.6173,z:12},'berlin':{lat:52.52,lng:13.405,z:12},
+  'rome':{lat:41.9028,lng:12.4964,z:12},'madrid':{lat:40.4168,lng:-3.7038,z:12},
+  'montreal':{lat:45.5017,lng:-73.5673,z:12},'toronto':{lat:43.6532,lng:-79.3832,z:12},
+  'shanghai':{lat:31.2304,lng:121.4737,z:12},'beijing':{lat:39.9042,lng:116.4074,z:12},
+  'pekin':{lat:39.9042,lng:116.4074,z:12},'seoul':{lat:37.5665,lng:126.978,z:12},
+  'bangkok':{lat:13.7563,lng:100.5018,z:12},'mumbai':{lat:19.076,lng:72.8777,z:12},
+  'cairo':{lat:30.0444,lng:31.2357,z:12},'le caire':{lat:30.0444,lng:31.2357,z:12},
+  'buenos aires':{lat:-34.6037,lng:-58.3816,z:12},'sao paulo':{lat:-23.5505,lng:-46.6333,z:12},
+  'amsterdam':{lat:52.3676,lng:4.9041,z:13},'prague':{lat:50.0755,lng:14.4378,z:13},
+  'barcelone':{lat:41.3851,lng:2.1734,z:12},'barcelona':{lat:41.3851,lng:2.1734,z:12},
+  'lyon':{lat:45.7640,lng:4.8357,z:13},'marseille':{lat:43.2965,lng:5.3698,z:12},
+  'france':{lat:46.2276,lng:2.2137,z:6},'europe':{lat:54.526,lng:15.2551,z:4},
+  'monde':{lat:20,lng:0,z:2},'earth':{lat:20,lng:0,z:2},'terre':{lat:20,lng:0,z:2},
+};
+function findOffline(q){
+  const k=q.toLowerCase().trim();
+  for(const[key,val] of Object.entries(OFFLINE_CITIES)){
+    if(key.includes(k)||k.includes(key)) return{...val,name:q};
+  }
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════
+// MAP MODES
+// ══════════════════════════════════════════════════════════
+function setMapMode(mode){
+  currentMode=mode;
+  const tiles=MAP_TILES[mode]||MAP_TILES.holo;
+  
+  if(currentLayer) map.removeLayer(currentLayer);
+  currentLayer=L.tileLayer(tiles.url,{
+    attribution:tiles.attr, subdomains:'abcd', maxZoom:20
+  }).addTo(map);
+  
+  applyMapFilter(mode);
+  
+  // Update UI
+  document.querySelectorAll('.mt').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`mt-${mode}`).classList.add('active');
+  document.getElementById('hud-mode').textContent=MAP_TILES[mode]?.name||'CUSTOM';
+  
+  notify(`MODE: ${(MAP_TILES[mode]?.name||mode).toUpperCase()}`);
+}
+
+// ══════════════════════════════════════════════════════════
+// VUES SPÉCIALES
+// ══════════════════════════════════════════════════════════
+function showPlanet(){
+  map.setView([20,0],2);
+  notify('VUE PLANÉTAIRE — TERRE');
+  document.getElementById('inf-loc').textContent='PLANÈTE TERRE';
+}
+function showSpace(){
+  map.setView([20,0],2);
+  setMapMode('dark');
+  notify('VUE SPATIALE ACTIVÉE');
+}
+function showOceans(){
+  map.setView([0,0],3);
+  notify('ANALYSE OCÉANIQUE');
+  addTargetMarker(0,-30,'Océan Atlantique','#0066ff');
+  addTargetMarker(-30,80,'Océan Indien','#0088ff');
+  addTargetMarker(0,-140,'Océan Pacifique','#0044ff');
+}
+function showNightLights(){
+  if(currentLayer) map.removeLayer(currentLayer);
+  currentLayer=L.tileLayer(
+    'https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
+    {attribution:'NASA Worldview',maxZoom:8}
+  ).addTo(map);
+  applyMapFilter('heat');
+  map.setView([20,0],3);
+  document.getElementById('hud-mode').textContent='LUMIÈRES NOCTURNES';
+  notify('LUMIÈRES NOCTURNES NASA');
+}
+
+// ══════════════════════════════════════════════════════════
+// GÉOLOCALISATION
+// ══════════════════════════════════════════════════════════
+function getMyLocation(){
+  if(!navigator.geolocation){notify('GÉOLOC NON SUPPORTÉE'); return;}
+  notify('LOCALISATION EN COURS...');
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude:lat,longitude:lng}=pos.coords;
+      flyTo(lat,lng,14,'MA POSITION');
+      addTargetMarker(lat,lng,'MA POSITION','#00ff9d');
+      notify('POSITION LOCALISÉE');
+    },
+    ()=>notify('GÉOLOC REFUSÉE')
+  );
+}
+
+// ══════════════════════════════════════════════════════════
+// INFO ENRICHIE (Wikipedia/Wikidata)
+// ══════════════════════════════════════════════════════════
+async function fetchLocationInfo(name){
+  try{
+    const url=`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`;
+    const r=await fetch(url); const d=await r.json();
+    if(d.extract){
+      const short=d.extract.slice(0,120)+'...';
+      document.getElementById('inf-loc').title=short;
+    }
+  }catch{}
+}
+
+// ══════════════════════════════════════════════════════════
+// LAYERS TOGGLE
+// ══════════════════════════════════════════════════════════
+function toggleLayer(layer,el){
+  el.classList.toggle('on');
+  const on=el.classList.contains('on');
+  if(layer==='scan') document.getElementById('scan-v').style.display=on?'block':'none';
+  if(layer==='hud'){
+    ['hud-tl','hud-tr','hud-br'].forEach(id=>document.getElementById(id).style.display=on?'block':'none');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICATION
+// ══════════════════════════════════════════════════════════
+let notifTimer;
+function notify(msg){
+  const n=document.getElementById('notif');
+  n.textContent=msg; n.style.display='block';
+  clearTimeout(notifTimer);
+  notifTimer=setTimeout(()=>n.style.display='none',2500);
+}
+
+// ══════════════════════════════════════════════════════════
+// SEARCH ON ENTER
+// ══════════════════════════════════════════════════════════
+document.getElementById('search').addEventListener('keydown',e=>{
+  if(e.key==='Enter') searchLocation();
+});
+
+// ══════════════════════════════════════════════════════════
+// FOOTER CYCLE
+// ══════════════════════════════════════════════════════════
+const FM=['⬡ OPENSTREETMAP · NOMINATIM · NASA ⬡','⬡ DONNÉES HORS-LIGNE DISPONIBLES ⬡',
+  '⬡ 196 PAYS · 7 CONTINENTS · 5 OCÉANS ⬡','⬡ JARVIS ULTIMATE v3.0 ⬡'];
+let fi=0;
+setInterval(()=>{fi=(fi+1)%FM.length; document.getElementById('ftr-mid').textContent=FM[fi];},5000);
+
+// Init
+updateHUD();
+notify('JARVIS CARTOGRAPHIE — PRÊT');
+</script>
+</body>
+</html>

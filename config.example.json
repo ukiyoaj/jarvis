@@ -1,0 +1,83 @@
+{
+  "elevenlabs_key": "YOUR_ELEVENLABS_KEY",
+  "elevenlabs_voice_id": "onwK4e9ZLuTAKqWW03F9",
+  "voice_speed": 168,
+  "voice_volume": 0.92,
+  "anthropic_key": "YOUR_ANTHROPIC_KEY",
+  "groq_key": "YOUR_GROQ_KEY",
+  "mistral_key": "YOUR_MISTRAL_KEY",
+  "gemini_key": "YOUR_GEMINI_KEY",
+  "gemini_pro_key": "",
+  "ollama_model": "llama3",
+  "gmail_address": "",
+  "gmail_app_password": "",
+  "instagram_username": "",
+  "instagram_password": "",
+  "wake_word": "jarvis",
+  "alt_wake_words": [
+    "hey jarvis",
+    "ok jarvis",
+    "yo jarvis"
+  ],
+  "hotkey": "ctrl+shift+j",
+  "language": "fr-FR",
+  "owner_name": "Patron",
+  "ui_port": 7474,
+  "opera_path": "C:\\Users\\TON_NOM\\AppData\\Local\\Programs\\Opera\\opera.exe",
+  "chrome_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "wallpaper_folder": "C:\\Users\\TON_NOM\\Pictures",
+  "auto_learn": true,
+  "confirm_improve": true,
+  "gesture_enabled": false,
+  "favorite_genres": [
+    "fps",
+    "action",
+    "rpg",
+    "strategy"
+  ],
+  "crypto_watchlist": [
+    "BTC",
+    "ETH",
+    "SOL",
+    "BNB"
+  ],
+  "stock_watchlist": [
+    "AAPL",
+    "NVDA",
+    "MSFT",
+    "TSLA"
+  ],
+  "obsidian_vault": "C:\\Users\\TON_NOM\\Chemin\\Vers\\TonCoffreObsidian",
+  "news_auto": true,
+  "news_interests_extra": [
+    "intelligence artificielle",
+    "découverte scientifique",
+    "PSG",
+    "Real Madrid",
+    "FC Barcelone",
+    "équipe de France football",
+    "équipe de Tunisie football"
+  ],
+  "remote_enabled": true,
+  "remote_port": 7475,
+  "remote_token": "",
+  "calendars": [
+    {
+      "nom": "IUT",
+      "url": "https://lien-ics-de-ton-emploi-du-temps"
+    }
+  ],
+  "server_checks": [],
+  "groq_model": "openai/gpt-oss-120b",
+  "icloud_user": "",
+  "icloud_app_password": "",
+  "icloud_calendar": "",
+  "mail_accounts": [
+    {
+      "nom": "IUT",
+      "imap": "imap.exemple.fr",
+      "user": "prenom.nom@etu.exemple.fr",
+      "password": ""
+    }
+  ]
+}
